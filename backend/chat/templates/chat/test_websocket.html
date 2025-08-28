@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste WebSocket</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .message { background-color: #e2e3e5; padding: 10px; margin: 5px 0; border-radius: 3px; }
+        input, button { padding: 10px; margin: 5px; }
+        #messages { max-height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; }
+    </style>
+</head>
+<body>
+    <h1>Teste WebSocket - Chat</h1>
+    
+    <div>
+        <label for="room">Sala:</label>
+        <input type="text" id="room" value="teste" placeholder="Nome da sala">
+        <button onclick="connect()">Conectar</button>
+        <button onclick="disconnect()">Desconectar</button>
+    </div>
+    
+    <div id="status" class="status disconnected">Desconectado</div>
+    
+    <div>
+        <label for="message">Mensagem:</label>
+        <input type="text" id="message" placeholder="Digite sua mensagem">
+        <button onclick="sendMessage()">Enviar</button>
+    </div>
+    
+    <h3>Mensagens:</h3>
+    <div id="messages"></div>
+    
+    <script>
+        let socket = null;
+        const statusDiv = document.getElementById('status');
+        const messagesDiv = document.getElementById('messages');
+        
+        function connect() {
+            const room = document.getElementById('room').value;
+            if (!room) {
+                alert('Digite o nome da sala');
+                return;
+            }
+            
+            const wsUrl = `ws://localhost:8000/ws/chat/${room}/`;
+            console.log('Conectando em:', wsUrl);
+            
+            try {
+                socket = new WebSocket(wsUrl);
+                
+                socket.onopen = function(e) {
+                    console.log('WebSocket conectado!');
+                    statusDiv.textContent = 'Conectado';
+                    statusDiv.className = 'status connected';
+                    addMessage('Sistema', 'Conectado ao chat');
+                };
+                
+                socket.onmessage = function(e) {
+                    console.log('Mensagem recebida:', e.data);
+                    try {
+                        const data = JSON.parse(e.data);
+                        if (data.type === 'connection_established') {
+                            addMessage('Sistema', data.message);
+                            console.log('Usuário conectado:', data.user_name);
+                        } else if (data.type === 'connection_test_response') {
+                            addMessage('Sistema', data.message);
+                        } else if (data.type === 'chat_message') {
+                            // Mostra mensagens de outros usuários
+                            const sender = data.user_name || 'Usuário';
+                            const avatar = data.user_avatar;
+                            addMessage(sender, data.message, avatar);
+                        } else if (data.type === 'error') {
+                            addMessage('Erro', data.message);
+                        }
+                    } catch (error) {
+                        addMessage('Erro', 'Erro ao processar mensagem: ' + error.message);
+                    }
+                };
+                
+                socket.onclose = function(e) {
+                    console.log('WebSocket fechado:', e.code, e.reason);
+                    statusDiv.textContent = 'Desconectado';
+                    statusDiv.className = 'status disconnected';
+                    addMessage('Sistema', 'Desconectado do chat');
+                };
+                
+                socket.onerror = function(e) {
+                    console.error('Erro WebSocket:', e);
+                    statusDiv.textContent = 'Erro na conexão';
+                    statusDiv.className = 'status disconnected';
+                    addMessage('Sistema', 'Erro na conexão WebSocket');
+                };
+                
+            } catch (error) {
+                console.error('Erro ao criar WebSocket:', error);
+                addMessage('Erro', 'Erro ao criar WebSocket: ' + error.message);
+            }
+        }
+        
+        function disconnect() {
+            if (socket) {
+                socket.close();
+                socket = null;
+            }
+        }
+        
+        function sendMessage() {
+            const messageInput = document.getElementById('message');
+            const message = messageInput.value.trim();
+            
+            if (!message) {
+                alert('Digite uma mensagem');
+                return;
+            }
+            
+            if (!socket || socket.readyState !== WebSocket.OPEN) {
+                alert('WebSocket não está conectado');
+                return;
+            }
+            
+            try {
+                const messageData = {
+                    type: 'chat_message',
+                    message: message
+                };
+                
+                socket.send(JSON.stringify(messageData));
+                
+                // Não adiciona a própria mensagem aqui - ela será recebida do servidor
+                // addMessage('Você', message);
+                messageInput.value = '';
+                
+            } catch (error) {
+                console.error('Erro ao enviar mensagem:', error);
+                addMessage('Erro', 'Erro ao enviar mensagem: ' + error.message);
+            }
+        }
+        
+        function addMessage(sender, text, avatar) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message';
+            
+            let avatarHtml = '';
+            if (avatar) {
+                avatarHtml = `<img src="${avatar}" alt="${sender}" class="w-6 h-6 rounded-full object-cover mr-2" style="display: inline-block; vertical-align: middle;">`;
+            }
+            
+            messageDiv.innerHTML = `
+                <div class="flex items-center">
+                    ${avatarHtml}
+                    <div>
+                        <strong>${sender}:</strong> ${text}
+                    </div>
+                </div>
+            `;
+            
+            messagesDiv.appendChild(messageDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+        
+        // Permitir enviar mensagem com Enter
+        document.getElementById('message').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>
