@@ -8,3 +8,5 @@
 +    social: 'bg-white/10 border border-white/20 text-white placeholder-white/50 focus:border-white/30 focus:ring-white/30'
    };
 @@ .. @@
+
+export default variants
