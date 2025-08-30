@@ -14,7 +14,11 @@ import {
   Flag,
   Camera,
   Heart,
-  Hash
+  Hash,
+  Eye,
+  Users,
+  Star,
+  Check
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUserProfile } from '../../hooks/useFirestore';
@@ -30,6 +34,8 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [userPosts, setUserPosts] = useState([]);
   const [postsLoading, setPostsLoading] = useState(false);
+  const [showFollowersModal, setShowFollowersModal] = useState(false);
+  const [showFollowingModal, setShowFollowingModal] = useState(false);
 
   // Mock user posts
   const mockPosts = [
@@ -37,19 +43,34 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
       id: 'post1',
       content: 'Hoje foi um dia incrível de autoconhecimento! Consegui aplicar as técnicas de mindfulness que aprendi e me senti muito mais centrada. É incrível como pequenas mudanças podem fazer uma grande diferença no nosso bem-estar mental. 🧘‍♀️✨',
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
-      likes: ['user2', 'user3'],
-      commentCount: 5,
+      likes: ['user2', 'user3', 'user4', 'user5'],
+      commentCount: 8,
+      shares: 2,
       tags: ['mindfulness', 'bem-estar', 'autoconhecimento'],
-      imageUrl: null
+      imageUrl: null,
+      mood: 'happy'
     },
     {
       id: 'post2',
-      content: 'Compartilhando uma reflexão: às vezes precisamos parar e reconhecer o quanto já evoluímos. Olhar para trás e ver o caminho percorrido pode ser muito motivador para continuar crescendo.',
+      content: 'Compartilhando uma reflexão: às vezes precisamos parar e reconhecer o quanto já evoluímos. Olhar para trás e ver o caminho percorrido pode ser muito motivador para continuar crescendo. 💪',
       createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
       likes: ['user1', 'user3', 'user4'],
-      commentCount: 3,
-      tags: ['reflexão', 'crescimento'],
-      imageUrl: null
+      commentCount: 5,
+      shares: 1,
+      tags: ['reflexão', 'crescimento', 'motivação'],
+      imageUrl: null,
+      mood: 'thoughtful'
+    },
+    {
+      id: 'post3',
+      content: 'Dica para quem está lidando com ansiedade: a técnica de respiração 4-7-8 tem me ajudado muito. Inspire por 4 segundos, segure por 7, expire por 8. Simples mas eficaz! 🌬️',
+      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48),
+      likes: ['user2', 'user5', 'user6'],
+      commentCount: 12,
+      shares: 6,
+      tags: ['ansiedade', 'respiração', 'dica'],
+      imageUrl: null,
+      mood: 'calm'
     }
   ];
 
@@ -98,14 +119,26 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
     const now = new Date();
     const diffInHours = (now - d) / (1000 * 60 * 60);
     
-    if (diffInHours < 1) return 'Agora mesmo';
+    if (diffInHours < 1) return 'agora';
     if (diffInHours < 24) return `${Math.floor(diffInHours)}h`;
-    if (diffInHours < 48) return 'Ontem';
+    if (diffInHours < 48) return 'ontem';
     
     return d.toLocaleDateString('pt-BR', { 
       day: 'numeric', 
       month: 'short' 
     });
+  };
+
+  const getMoodEmoji = (mood) => {
+    const moodMap = {
+      happy: '😊',
+      calm: '😌',
+      sad: '😔',
+      anxious: '😰',
+      angry: '😡',
+      thoughtful: '🤔'
+    };
+    return moodMap[mood] || '😐';
   };
 
   if (loading) {
@@ -130,7 +163,7 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
   return (
     <div className="space-y-6">
       {/* Profile Header */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+      <div className="bg-black border border-white/20 rounded-2xl overflow-hidden">
         {/* Banner */}
         <div className="relative h-48 bg-gradient-to-r from-white/10 to-white/5">
           {profile.bannerURL && (
@@ -145,7 +178,7 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
             <Button
               variant="ghost"
               size="sm"
-              className="absolute top-4 right-4 bg-black/50 hover:bg-black/70"
+              className="absolute top-4 right-4 bg-black/70 hover:bg-black/90 text-white"
             >
               <Camera className="w-4 h-4" />
             </Button>
@@ -153,9 +186,9 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
         </div>
 
         {/* Profile Info */}
-        <div className="p-6 -mt-16 relative">
+        <div className="p-8 -mt-16 relative">
           {/* Avatar */}
-          <div className="relative inline-block mb-4">
+          <div className="relative inline-block mb-6">
             <div className="w-32 h-32 rounded-full bg-white/10 border-4 border-black overflow-hidden">
               {profile.photoURL ? (
                 <img 
@@ -172,7 +205,7 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
               <Button
                 variant="ghost"
                 size="sm"
-                className="absolute bottom-2 right-2 bg-black/50 hover:bg-black/70 rounded-full"
+                className="absolute bottom-2 right-2 bg-black/70 hover:bg-black/90 rounded-full text-white"
               >
                 <Camera className="w-4 h-4" />
               </Button>
@@ -180,34 +213,44 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
           </div>
 
           {/* User Info */}
-          <div className="flex items-start justify-between mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-white mb-2">
-                {profile.displayName || 'Usuário'}
-              </h1>
+          <div className="flex items-start justify-between mb-6">
+            <div className="flex-1">
+              <div className="flex items-center space-x-3 mb-2">
+                <h1 className="text-4xl font-bold text-white">
+                  {profile.displayName || 'Usuário'}
+                </h1>
+                
+                {profile.isVerified && (
+                  <Check className="w-6 h-6 text-white bg-white/20 rounded-full p-1" />
+                )}
+                
+                {profile.isPremium && (
+                  <Star className="w-6 h-6 text-yellow-400" />
+                )}
+              </div>
               
-              <p className="text-white/70 text-lg mb-3">
+              <p className="text-white/70 text-xl mb-4">
                 @{profile.username || 'usuario'}
               </p>
               
               {profile.bio && (
-                <p className="text-white/80 mb-4 max-w-md leading-relaxed">
+                <p className="text-white/80 mb-6 max-w-2xl leading-relaxed text-lg">
                   {profile.bio}
                 </p>
               )}
               
               {/* User Details */}
-              <div className="flex flex-wrap items-center gap-4 text-sm text-white/60">
+              <div className="flex flex-wrap items-center gap-6 text-base text-white/60 mb-6">
                 {profile.location && (
-                  <div className="flex items-center space-x-1">
-                    <MapPin className="w-4 h-4" />
+                  <div className="flex items-center space-x-2">
+                    <MapPin className="w-5 h-5" />
                     <span>{profile.location}</span>
                   </div>
                 )}
                 
                 {profile.website && (
-                  <div className="flex items-center space-x-1">
-                    <LinkIcon className="w-4 h-4" />
+                  <div className="flex items-center space-x-2">
+                    <LinkIcon className="w-5 h-5" />
                     <a 
                       href={profile.website} 
                       target="_blank" 
@@ -220,11 +263,41 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
                 )}
                 
                 {profile.createdAt && (
-                  <div className="flex items-center space-x-1">
-                    <Calendar className="w-4 h-4" />
+                  <div className="flex items-center space-x-2">
+                    <Calendar className="w-5 h-5" />
                     <span>Entrou em {formatDate(profile.createdAt)}</span>
                   </div>
                 )}
+              </div>
+
+              {/* Stats */}
+              <div className="flex items-center space-x-8 text-lg">
+                <div className="text-center cursor-pointer hover:text-white transition-colors">
+                  <div className="font-bold text-white text-2xl">
+                    {profile.postCount || userPosts.length}
+                  </div>
+                  <div className="text-white/60">Posts</div>
+                </div>
+                
+                <div 
+                  className="text-center cursor-pointer hover:text-white transition-colors"
+                  onClick={() => setShowFollowersModal(true)}
+                >
+                  <div className="font-bold text-white text-2xl">
+                    {profile.followers?.length || 1247}
+                  </div>
+                  <div className="text-white/60">Seguidores</div>
+                </div>
+                
+                <div 
+                  className="text-center cursor-pointer hover:text-white transition-colors"
+                  onClick={() => setShowFollowingModal(true)}
+                >
+                  <div className="font-bold text-white text-2xl">
+                    {profile.following?.length || 892}
+                  </div>
+                  <div className="text-white/60">Seguindo</div>
+                </div>
               </div>
             </div>
 
@@ -235,6 +308,7 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
                   onClick={() => setShowEditModal(true)}
                   variant="secondary"
                   leftIcon={Edit3}
+                  size="lg"
                 >
                   Editar perfil
                 </Button>
@@ -244,56 +318,35 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
                     onClick={handleFollow}
                     variant={isFollowing ? 'secondary' : 'default'}
                     leftIcon={isFollowing ? UserMinus : UserPlus}
+                    size="lg"
+                    className="px-8"
                   >
-                    {isFollowing ? 'Deixar de seguir' : 'Seguir'}
+                    {isFollowing ? 'Seguindo' : 'Seguir'}
                   </Button>
                   
                   <Button
                     onClick={handleMessage}
                     variant="secondary"
                     leftIcon={MessageCircle}
+                    size="lg"
                   >
                     Mensagem
                   </Button>
                   
-                  <Button variant="ghost" size="sm">
-                    <MoreVertical className="w-4 h-4" />
+                  <Button variant="ghost" size="lg">
+                    <MoreVertical className="w-5 h-5" />
                   </Button>
                 </>
               )}
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="flex items-center space-x-8 text-sm">
-            <div className="text-center">
-              <div className="font-bold text-white text-lg">
-                {profile.postCount || 0}
-              </div>
-              <div className="text-white/60">Posts</div>
-            </div>
-            
-            <div className="text-center cursor-pointer hover:text-white transition-colors">
-              <div className="font-bold text-white text-lg">
-                {profile.followers?.length || 0}
-              </div>
-              <div className="text-white/60">Seguidores</div>
-            </div>
-            
-            <div className="text-center cursor-pointer hover:text-white transition-colors">
-              <div className="font-bold text-white text-lg">
-                {profile.following?.length || 0}
-              </div>
-              <div className="text-white/60">Seguindo</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Profile Tabs */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl">
+      <div className="bg-black border border-white/20 rounded-2xl">
         {/* Tab Navigation */}
-        <div className="flex border-b border-white/10">
+        <div className="flex border-b border-white/20">
           {[
             { id: 'posts', label: 'Posts', count: userPosts.length },
             { id: 'media', label: 'Mídia', count: 0 },
@@ -308,7 +361,7 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
                   : 'text-white/70 hover:text-white hover:bg-white/5'
               }`}
             >
-              <span className="font-medium">{tab.label}</span>
+              <span className="font-bold text-lg">{tab.label}</span>
               {tab.count > 0 && (
                 <span className="ml-2 text-sm text-white/50">({tab.count})</span>
               )}
@@ -334,10 +387,10 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
                 />
               ) : (
                 userPosts.map((post) => (
-                  <div key={post.id} className="bg-white/5 border border-white/10 rounded-xl p-4">
-                    <div className="flex items-start justify-between mb-3">
+                  <div key={post.id} className="bg-white/5 border border-white/10 rounded-xl p-6 hover:bg-white/10 transition-all duration-200">
+                    <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+                        <div className="w-12 h-12 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center overflow-hidden">
                           {profile.photoURL ? (
                             <img 
                               src={profile.photoURL} 
@@ -345,14 +398,19 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <User className="w-5 h-5 text-white/70" />
+                            <User className="w-6 h-6 text-white/70" />
                           )}
                         </div>
                         
                         <div>
-                          <h4 className="font-medium text-white">
-                            {profile.displayName}
-                          </h4>
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-bold text-white">
+                              {profile.displayName}
+                            </h4>
+                            {post.mood && (
+                              <span className="text-lg">{getMoodEmoji(post.mood)}</span>
+                            )}
+                          </div>
                           <p className="text-sm text-white/50">
                             {formatPostDate(post.createdAt)}
                           </p>
@@ -366,16 +424,16 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
                       )}
                     </div>
                     
-                    <p className="text-white/90 leading-relaxed mb-3">
+                    <p className="text-white text-lg leading-relaxed mb-4">
                       {post.content}
                     </p>
                     
                     {post.tags && post.tags.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
+                      <div className="flex flex-wrap gap-2 mb-4">
                         {post.tags.map((tag, index) => (
                           <span
                             key={index}
-                            className="inline-flex items-center space-x-1 px-2 py-1 bg-white/10 text-white/70 text-xs rounded-full"
+                            className="inline-flex items-center space-x-1 px-3 py-1 bg-white/10 text-white/80 text-sm rounded-full border border-white/20"
                           >
                             <Hash className="w-3 h-3" />
                             <span>{tag}</span>
@@ -384,14 +442,32 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
                       </div>
                     )}
                     
-                    <div className="flex items-center space-x-6 text-sm text-white/60">
-                      <div className="flex items-center space-x-1">
-                        <Heart className="w-4 h-4" />
-                        <span>{post.likes.length}</span>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-6 text-white/60">
+                        <div className="flex items-center space-x-2">
+                          <Heart className="w-5 h-5" />
+                          <span className="font-medium">{post.likes.length}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <MessageCircle className="w-5 h-5" />
+                          <span className="font-medium">{post.commentCount}</span>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Share2 className="w-5 h-5" />
+                          <span className="font-medium">{post.shares}</span>
+                        </div>
                       </div>
-                      <div className="flex items-center space-x-1">
-                        <MessageCircle className="w-4 h-4" />
-                        <span>{post.commentCount}</span>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Button variant="ghost" size="sm" className="text-white/60 hover:text-red-400">
+                          <Heart className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-white/60 hover:text-white">
+                          <MessageCircle className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-white/60 hover:text-white">
+                          <Share2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -419,6 +495,78 @@ const UserProfile = ({ userId, isOwnProfile = false }) => {
           )}
         </div>
       </div>
+
+      {/* Followers Modal */}
+      {showFollowersModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-black border border-white/20 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Seguidores</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFollowersModal(false)}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            
+            <div className="space-y-3">
+              {/* Mock followers */}
+              {Array.from({ length: 5 }, (_, i) => (
+                <div key={i} className="flex items-center space-x-3 p-3 bg-white/5 rounded-xl">
+                  <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                    <User className="w-5 h-5 text-white/70" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-white">Usuário {i + 1}</h4>
+                    <p className="text-sm text-white/60">@usuario{i + 1}</p>
+                  </div>
+                  <Button variant="secondary" size="sm">
+                    <UserPlus className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Following Modal */}
+      {showFollowingModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-black border border-white/20 rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Seguindo</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFollowingModal(false)}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            
+            <div className="space-y-3">
+              {/* Mock following */}
+              {Array.from({ length: 3 }, (_, i) => (
+                <div key={i} className="flex items-center space-x-3 p-3 bg-white/5 rounded-xl">
+                  <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center">
+                    <User className="w-5 h-5 text-white/70" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-medium text-white">Usuário {i + 1}</h4>
+                    <p className="text-sm text-white/60">@usuario{i + 1}</p>
+                  </div>
+                  <Button variant="secondary" size="sm">
+                    <UserMinus className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

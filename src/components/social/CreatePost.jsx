@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Image, Hash, Eye, EyeOff, Send, X, Smile, MapPin, Users } from 'lucide-react';
+import { Image, Hash, Eye, EyeOff, Send, X, Smile, MapPin, Users, Camera, Paperclip } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePosts } from '../../hooks/useFirestore';
 import Button from '../ui/Button';
@@ -16,9 +16,18 @@ const CreatePost = ({ onPostCreated, className }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [mood, setMood] = useState('');
   const fileInputRef = useRef(null);
 
   const emojis = ['😊', '😢', '😡', '😍', '🤔', '😴', '🎉', '💪', '🙏', '❤️', '👍', '👎', '🔥', '💯', '✨'];
+  const moods = [
+    { emoji: '😊', label: 'Feliz', value: 'happy' },
+    { emoji: '😌', label: 'Calmo', value: 'calm' },
+    { emoji: '😔', label: 'Triste', value: 'sad' },
+    { emoji: '😰', label: 'Ansioso', value: 'anxious' },
+    { emoji: '😡', label: 'Irritado', value: 'angry' },
+    { emoji: '🤔', label: 'Pensativo', value: 'thoughtful' }
+  ];
 
   const handleImageSelect = (e) => {
     const file = e.target.files[0];
@@ -79,8 +88,10 @@ const CreatePost = ({ onPostCreated, className }) => {
         visibility: visibility,
         userId: user.uid,
         author: visibility === 'anonymous' ? 'Usuário Anônimo' : (user.displayName || user.email || 'Usuário'),
+        username: visibility === 'anonymous' ? 'anonimo' : (user.username || 'usuario'),
         avatar: visibility === 'anonymous' ? null : user.photoURL,
-        imageUrl: imagePreview // For now, using base64. In production, upload to storage
+        imageUrl: imagePreview, // For now, using base64. In production, upload to storage
+        mood: mood
       };
 
       const postId = await createPost(postData);
@@ -90,6 +101,7 @@ const CreatePost = ({ onPostCreated, className }) => {
         setContent('');
         setTags('');
         setVisibility('public');
+        setMood('');
         removeImage();
         
         onPostCreated?.(postData);
@@ -115,24 +127,11 @@ const CreatePost = ({ onPostCreated, className }) => {
     }
   };
 
-  const getVisibilityLabel = () => {
-    switch (visibility) {
-      case 'public':
-        return 'Público';
-      case 'private':
-        return 'Privado';
-      case 'anonymous':
-        return 'Anônimo';
-      default:
-        return 'Público';
-    }
-  };
-
   return (
-    <div className={`bg-white/5 border border-white/10 rounded-2xl p-6 ${className}`}>
+    <div className={`bg-black border border-white/20 rounded-2xl p-6 ${className}`}>
       <div className="flex items-start space-x-4">
         {/* User Avatar */}
-        <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
+        <div className="w-12 h-12 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center overflow-hidden flex-shrink-0">
           {user?.photoURL ? (
             <img 
               src={user.photoURL} 
@@ -152,16 +151,36 @@ const CreatePost = ({ onPostCreated, className }) => {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="O que você está pensando?"
-              className="w-full bg-transparent border-none text-white text-lg placeholder-white/50 resize-none focus:outline-none min-h-[80px]"
+              className="w-full bg-transparent border-none text-white text-xl placeholder-white/50 resize-none focus:outline-none min-h-[100px] leading-relaxed"
               maxLength={1000}
               disabled={isSubmitting}
             />
             
             {/* Character Count */}
-            <div className="absolute bottom-2 right-2 text-xs text-white/40">
+            <div className="absolute bottom-2 right-2 text-xs text-white/30">
               {content.length}/1000
             </div>
           </div>
+
+          {/* Mood Selector */}
+          {mood && (
+            <div className="flex items-center space-x-2 p-3 bg-white/5 rounded-xl border border-white/10">
+              <span className="text-white/70 text-sm">Sentindo-se:</span>
+              <span className="text-lg">{moods.find(m => m.value === mood)?.emoji}</span>
+              <span className="text-white text-sm font-medium">
+                {moods.find(m => m.value === mood)?.label}
+              </span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setMood('')}
+                className="ml-auto"
+              >
+                <X className="w-3 h-3" />
+              </Button>
+            </div>
+          )}
 
           {/* Image Preview */}
           {imagePreview && (
@@ -176,7 +195,7 @@ const CreatePost = ({ onPostCreated, className }) => {
                 variant="ghost"
                 size="sm"
                 onClick={removeImage}
-                className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white"
+                className="absolute top-2 right-2 bg-black/70 hover:bg-black/90 text-white"
                 disabled={isSubmitting}
               >
                 <X className="w-4 h-4" />
@@ -192,7 +211,7 @@ const CreatePost = ({ onPostCreated, className }) => {
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="Adicione tags (separadas por vírgula)"
-              className="w-full pl-10 pr-4 py-2 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+              className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
               disabled={isSubmitting}
             />
           </div>
@@ -216,7 +235,7 @@ const CreatePost = ({ onPostCreated, className }) => {
                 disabled={isSubmitting}
                 className="text-white/70 hover:text-white"
               >
-                <Image className="w-5 h-5" />
+                <Camera className="w-5 h-5" />
               </Button>
               
               {/* Emoji Picker */}
@@ -233,13 +252,13 @@ const CreatePost = ({ onPostCreated, className }) => {
                 </Button>
                 
                 {showEmojiPicker && (
-                  <div className="absolute bottom-full left-0 mb-2 bg-black/90 border border-white/20 rounded-xl p-3 grid grid-cols-5 gap-2 z-10">
+                  <div className="absolute bottom-full left-0 mb-2 bg-black border border-white/20 rounded-xl p-3 grid grid-cols-5 gap-2 z-10">
                     {emojis.map((emoji, index) => (
                       <button
                         key={index}
                         type="button"
                         onClick={() => addEmoji(emoji)}
-                        className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors"
+                        className="w-8 h-8 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-lg"
                       >
                         {emoji}
                       </button>
@@ -248,12 +267,26 @@ const CreatePost = ({ onPostCreated, className }) => {
                 )}
               </div>
 
+              {/* Mood Selector */}
+              <div className="relative">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-white/70 hover:text-white"
+                >
+                  <span className="text-lg">😊</span>
+                </Button>
+                
+                {/* Mood dropdown would go here */}
+              </div>
+
               {/* Visibility Selector */}
               <div className="flex items-center space-x-2">
                 <select
                   value={visibility}
                   onChange={(e) => setVisibility(e.target.value)}
-                  className="bg-white/10 border border-white/20 rounded-lg px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
+                  className="bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30"
                   disabled={isSubmitting}
                 >
                   <option value="public">Público</option>
@@ -263,7 +296,6 @@ const CreatePost = ({ onPostCreated, className }) => {
                 
                 <div className="flex items-center space-x-1 text-xs text-white/50">
                   {getVisibilityIcon()}
-                  <span>{getVisibilityLabel()}</span>
                 </div>
               </div>
             </div>
@@ -273,8 +305,8 @@ const CreatePost = ({ onPostCreated, className }) => {
               type="submit"
               disabled={isSubmitting || !content.trim()}
               loading={isSubmitting}
-              size="sm"
-              className="px-6"
+              size="default"
+              className="px-8 font-semibold"
             >
               {isSubmitting ? 'Postando...' : 'Postar'}
             </Button>

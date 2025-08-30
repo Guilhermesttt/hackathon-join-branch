@@ -1,0 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Import social network styles */
+@import './styles/social.css';
+
+@@ .. @@
+  /* Efeitos de glass específicos */
+  .glass-border {
+    position: relative;
+  }
+
+  .glass-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    background: linear-gradient(45deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    border-radius: inherit;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    -webkit-mask-composite: xor;
+    pointer-events: none;
+  }
+
+  /* Social Network Specific Styles */
+  .social-card {
+    @apply bg-black border border-white/20 rounded-2xl p-6 hover:border-white/30 transition-all duration-300;
+  }
+
+  .social-button {
+    @apply px-4 py-2 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-white/30;
+  }
+
+  .social-input {
+    @apply bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all duration-200;
+  }
+
+  .user-avatar {
+    @apply rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center overflow-hidden;
+  }
+
+  .online-indicator {
+    @apply absolute bottom-0 right-0 bg-green-400 border-2 border-black rounded-full;
+  }
+
+  .notification-badge {
+    @apply absolute -top-1 -right-1 bg-white text-black text-xs font-bold rounded-full flex items-center justify-center min-w-[1.25rem] h-5 px-1;
+  }
+
+  .trending-item {
+    @apply p-4 bg-white/5 border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-200 cursor-pointer;
+  }
+
+  .message-bubble-own {
+    @apply bg-white text-black rounded-2xl rounded-br-md px-4 py-3 max-w-xs lg:max-w-md;
+  }
+
+  .message-bubble-other {
+    @apply bg-white/10 text-white border border-white/20 rounded-2xl rounded-bl-md px-4 py-3 max-w-xs lg:max-w-md;
+  }
+
+  .post-action-button {
+    @apply flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-200 text-white/70 hover:text-white hover:bg-white/10;
+  }
+
+  .post-action-button-active {
+    @apply post-action-button bg-white/10 text-white;
+  }
+
+  /* Efeitos de partículas para liquid glass */
+@@ .. @@

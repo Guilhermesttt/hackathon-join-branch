@@ -21,7 +21,8 @@ const Button = React.forwardRef(({
     secondary: 'bg-transparent border border-white/30 text-white hover:bg-white/10 focus:ring-white/50',
     ghost: 'bg-transparent text-white/70 hover:text-white hover:bg-white/10 focus:ring-white/50',
     danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
-    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500'
+    success: 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
+    outline: 'bg-transparent border-2 border-white/50 text-white hover:bg-white hover:text-black focus:ring-white/50'
   };
   
   const sizes = {

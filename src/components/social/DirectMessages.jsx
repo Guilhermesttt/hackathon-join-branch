@@ -11,7 +11,10 @@ import {
   Paperclip,
   Smile,
   Check,
-  CheckCheck
+  CheckCheck,
+  Plus,
+  X,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Button from '../ui/Button';
@@ -28,6 +31,7 @@ const DirectMessages = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
   const messagesEndRef = useRef(null);
 
   // Mock data for conversations
@@ -65,9 +69,29 @@ const DirectMessages = () => {
       },
       lastMessage: {
         id: 'msg2',
-        content: 'Obrigado pela dica de meditação!',
+        content: 'Obrigado pela dica de meditação! 🧘‍♂️',
         senderId: user?.uid,
         timestamp: new Date(Date.now() - 1000 * 60 * 60 * 4),
+        read: true
+      },
+      unreadCount: 0
+    },
+    {
+      id: 'conv3',
+      participants: ['user3', user?.uid],
+      otherUser: {
+        id: 'user3',
+        displayName: 'Maria Costa',
+        username: 'maria_costa',
+        photoURL: null,
+        isOnline: true,
+        lastSeen: new Date()
+      },
+      lastMessage: {
+        id: 'msg3',
+        content: 'Vamos marcar aquela sessão de terapia em grupo?',
+        senderId: 'user3',
+        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 8),
         read: true
       },
       unreadCount: 0
@@ -86,7 +110,7 @@ const DirectMessages = () => {
     },
     {
       id: 'msg2',
-      content: 'Estou bem, obrigado por perguntar! Hoje foi um dia mais tranquilo.',
+      content: 'Estou bem, obrigado por perguntar! Hoje foi um dia mais tranquilo. Como foi o seu dia?',
       senderId: user?.uid,
       timestamp: new Date(Date.now() - 1000 * 60 * 50),
       read: true,
@@ -98,6 +122,14 @@ const DirectMessages = () => {
       senderId: 'user1',
       timestamp: new Date(Date.now() - 1000 * 60 * 30),
       read: false,
+      type: 'text'
+    },
+    {
+      id: 'msg4',
+      content: 'Sim! Tem me ajudado muito, especialmente antes de dormir. Muito obrigado pela dica! 🙏',
+      senderId: user?.uid,
+      timestamp: new Date(Date.now() - 1000 * 60 * 15),
+      read: true,
       type: 'text'
     }
   ];
@@ -216,14 +248,24 @@ const DirectMessages = () => {
   }
 
   return (
-    <div className="h-[600px] bg-white/5 border border-white/10 rounded-2xl overflow-hidden flex">
+    <div className="h-[700px] bg-black border border-white/20 rounded-2xl overflow-hidden flex">
       {/* Conversations List */}
-      <div className="w-1/3 border-r border-white/10 flex flex-col">
+      <div className="w-1/3 border-r border-white/20 flex flex-col">
         {/* Header */}
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-center space-x-2 mb-4">
-            <MessageCircle className="w-5 h-5 text-white/80" />
-            <h2 className="text-lg font-semibold text-white">Mensagens</h2>
+        <div className="p-6 border-b border-white/20">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <MessageCircle className="w-6 h-6 text-white" />
+              <h2 className="text-xl font-bold text-white">Mensagens</h2>
+            </div>
+            
+            <Button
+              onClick={() => setShowNewChatModal(true)}
+              variant="ghost"
+              size="sm"
+            >
+              <Plus className="w-5 h-5" />
+            </Button>
           </div>
           
           {/* Search */}
@@ -241,19 +283,21 @@ const DirectMessages = () => {
         {/* Conversations */}
         <div className="flex-1 overflow-y-auto">
           {filteredConversations.length === 0 ? (
-            <EmptyState
-              icon={MessageCircle}
-              title="Nenhuma conversa"
-              description="Comece uma nova conversa!"
-              variant="muted"
-            />
+            <div className="p-6">
+              <EmptyState
+                icon={MessageCircle}
+                title="Nenhuma conversa"
+                description="Comece uma nova conversa!"
+                variant="muted"
+              />
+            </div>
           ) : (
             <div className="space-y-1 p-2">
               {filteredConversations.map((conversation) => (
                 <button
                   key={conversation.id}
                   onClick={() => setSelectedConversation(conversation)}
-                  className={`w-full p-3 rounded-xl text-left transition-all duration-200 ${
+                  className={`w-full p-4 rounded-xl text-left transition-all duration-200 ${
                     selectedConversation?.id === conversation.id
                       ? 'bg-white/20 border border-white/30'
                       : 'hover:bg-white/10'
@@ -262,7 +306,7 @@ const DirectMessages = () => {
                   <div className="flex items-center space-x-3">
                     {/* Avatar with online status */}
                     <div className="relative">
-                      <div className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
+                      <div className="w-14 h-14 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center overflow-hidden">
                         {conversation.otherUser.photoURL ? (
                           <img 
                             src={conversation.otherUser.photoURL} 
@@ -270,20 +314,20 @@ const DirectMessages = () => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <User className="w-6 h-6 text-white/70" />
+                          <User className="w-7 h-7 text-white/70" />
                         )}
                       </div>
                       
                       {/* Online indicator */}
-                      <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-black ${
+                      <div className={`absolute bottom-0 right-0 w-4 h-4 rounded-full border-2 border-black ${
                         conversation.otherUser.isOnline ? 'bg-green-400' : 'bg-white/30'
                       }`} />
                     </div>
 
                     {/* Conversation Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-white truncate">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="font-bold text-white truncate text-base">
                           {conversation.otherUser.displayName}
                         </h4>
                         <span className="text-xs text-white/50">
@@ -296,16 +340,16 @@ const DirectMessages = () => {
                         {conversation.lastMessage.content}
                       </p>
                       
-                      {conversation.unreadCount > 0 && (
-                        <div className="flex items-center justify-between mt-1">
-                          <span className="text-xs text-white/50">
-                            @{conversation.otherUser.username}
-                          </span>
-                          <span className="bg-white text-black text-xs px-2 py-1 rounded-full font-medium">
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-white/40">
+                          @{conversation.otherUser.username}
+                        </span>
+                        {conversation.unreadCount > 0 && (
+                          <span className="bg-white text-black text-xs px-2 py-1 rounded-full font-bold">
                             {conversation.unreadCount}
                           </span>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   </div>
                 </button>
@@ -320,8 +364,8 @@ const DirectMessages = () => {
         {selectedConversation ? (
           <>
             {/* Chat Header */}
-            <div className="p-4 border-b border-white/10 flex items-center justify-between">
-              <div className="flex items-center space-x-3">
+            <div className="p-6 border-b border-white/20 flex items-center justify-between">
+              <div className="flex items-center space-x-4">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -331,20 +375,25 @@ const DirectMessages = () => {
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
                 
-                <div className="w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center overflow-hidden">
-                  {selectedConversation.otherUser.photoURL ? (
-                    <img 
-                      src={selectedConversation.otherUser.photoURL} 
-                      alt={selectedConversation.otherUser.displayName} 
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-5 h-5 text-white/70" />
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-full bg-white/10 border-2 border-white/20 flex items-center justify-center overflow-hidden">
+                    {selectedConversation.otherUser.photoURL ? (
+                      <img 
+                        src={selectedConversation.otherUser.photoURL} 
+                        alt={selectedConversation.otherUser.displayName} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-6 h-6 text-white/70" />
+                    )}
+                  </div>
+                  {selectedConversation.otherUser.isOnline && (
+                    <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-400 border-2 border-black rounded-full"></div>
                   )}
                 </div>
                 
                 <div>
-                  <h3 className="font-medium text-white">
+                  <h3 className="font-bold text-white text-lg">
                     {selectedConversation.otherUser.displayName}
                   </h3>
                   <p className="text-sm text-white/60">
@@ -357,20 +406,20 @@ const DirectMessages = () => {
               </div>
 
               <div className="flex items-center space-x-2">
-                <Button variant="ghost" size="sm">
-                  <Phone className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="text-white/70 hover:text-white">
+                  <Phone className="w-5 h-5" />
                 </Button>
-                <Button variant="ghost" size="sm">
-                  <Video className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="text-white/70 hover:text-white">
+                  <Video className="w-5 h-5" />
                 </Button>
-                <Button variant="ghost" size="sm">
-                  <MoreVertical className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="text-white/70 hover:text-white">
+                  <MoreVertical className="w-5 h-5" />
                 </Button>
               </div>
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
               {messages.map((message) => {
                 const isOwn = message.senderId === user?.uid;
                 
@@ -381,16 +430,16 @@ const DirectMessages = () => {
                   >
                     <div className={`max-w-xs lg:max-w-md ${isOwn ? 'order-2' : 'order-1'}`}>
                       <div
-                        className={`px-4 py-2 rounded-2xl ${
+                        className={`px-4 py-3 rounded-2xl ${
                           isOwn
                             ? 'bg-white text-black rounded-br-md'
                             : 'bg-white/10 text-white border border-white/20 rounded-bl-md'
                         }`}
                       >
-                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <p className="text-base leading-relaxed">{message.content}</p>
                       </div>
                       
-                      <div className={`flex items-center mt-1 space-x-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`flex items-center mt-2 space-x-1 ${isOwn ? 'justify-end' : 'justify-start'}`}>
                         <span className="text-xs text-white/50">
                           {formatMessageTime(message.timestamp)}
                         </span>
@@ -413,14 +462,18 @@ const DirectMessages = () => {
             </div>
 
             {/* Message Input */}
-            <div className="p-4 border-t border-white/10">
+            <div className="p-6 border-t border-white/20">
               <div className="flex items-center space-x-3">
-                <Button variant="ghost" size="sm">
-                  <Paperclip className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="text-white/70 hover:text-white">
+                  <Paperclip className="w-5 h-5" />
                 </Button>
                 
-                <Button variant="ghost" size="sm">
-                  <Smile className="w-4 h-4" />
+                <Button variant="ghost" size="sm" className="text-white/70 hover:text-white">
+                  <ImageIcon className="w-5 h-5" />
+                </Button>
+                
+                <Button variant="ghost" size="sm" className="text-white/70 hover:text-white">
+                  <Smile className="w-5 h-5" />
                 </Button>
                 
                 <div className="flex-1">
@@ -430,7 +483,7 @@ const DirectMessages = () => {
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Digite sua mensagem..."
-                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-2 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
+                    className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30"
                     disabled={sendingMessage}
                   />
                 </div>
@@ -439,9 +492,10 @@ const DirectMessages = () => {
                   onClick={handleSendMessage}
                   disabled={!newMessage.trim() || sendingMessage}
                   loading={sendingMessage}
-                  size="sm"
+                  size="default"
+                  className="px-4"
                 >
-                  <Send className="w-4 h-4" />
+                  <Send className="w-5 h-5" />
                 </Button>
               </div>
             </div>
@@ -457,6 +511,38 @@ const DirectMessages = () => {
           </div>
         )}
       </div>
+
+      {/* New Chat Modal */}
+      {showNewChatModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-black border border-white/20 rounded-2xl p-6 max-w-md w-full">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-bold text-white">Nova Conversa</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowNewChatModal(false)}
+              >
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            
+            <div className="space-y-4">
+              <Input
+                type="text"
+                placeholder="Buscar usuários..."
+                leftIcon={Search}
+                variant="glass"
+              />
+              
+              <div className="text-center py-8">
+                <User className="w-12 h-12 text-white/30 mx-auto mb-3" />
+                <p className="text-white/50">Digite para buscar usuários</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
